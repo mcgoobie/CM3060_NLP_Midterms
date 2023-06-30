@@ -1,0 +1,1115 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "b7ee74c1",
+   "metadata": {},
+   "source": [
+    "# Coursework Assignment: Text classification"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5ec749df",
+   "metadata": {},
+   "source": [
+    "## (1) : Introduction"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ba323012",
+   "metadata": {},
+   "source": [
+    "### Domain-Specific Area : Movie and Film Industry\n",
+    "\n",
+    "This report aims to explore how the application of a text classifier for sentiment analysis can help resolve challenges in the Film Industry. With the ever-growing popularity of social media and review websites, it has grown increasingly difficult to make informed decisions regarding whether a movie is worth watching.\n",
+    "\n",
+    "This is due to a simple fact that peoples' taste in films will differ significantly. The uncertainity regarding how worth new movies are to watch could lead to having a fear of missing out(FOMO).\n",
+    "\n",
+    "Furthermore, with the rising costs in our day-to-day lives, deciding to spend a night at the cinema is a very costly affair. It is a terrible experience for any individual to have to spend $15 SGD, just to have it wasted on a film of subpar quality for the next few hours of the evening.\n",
+    "\n",
+    "By creating a text classifier to analyze sentiment in movie reviews, this report hopes to aid indivisuals in their decision making and improve the quality of their movie-watching experience."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "297a5554",
+   "metadata": {},
+   "source": [
+    "### Objectives\n",
+    "\n",
+    "The main problem this report tackles is being able to get a text classifier that identifies the overall sentiment of a given movie's reviews.\n",
+    "\n",
+    "Thus, the primary objective of this classifier is to,\n",
+    "\n",
+    "- Correctly assign binary labels of pos/neg to movie reviews."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "276d96c1",
+   "metadata": {},
+   "source": [
+    "### Dataset\n",
+    "\n",
+    "For the dataset, I will be using the <a href=\"https://ai.stanford.edu/~amaas/data/sentiment/\"><b>Large Movie Review Dataset</b></a> which was the dataset used in the publication of the ACL 2011 paper, <b>Learning Word Vectors for Sentiment Analysis</b>, written by <b>Andrew L. Maas, Raymond E. Daly, Peter T. Pham, Dan Huang,\n",
+    "Andrew Y. Ng, and Christopher Potts</b>, which can be found <a href=\"https://aclanthology.org/P11-1015/\">here</a>.\n",
+    "\n",
+    "This dataset contains a wide collection of movie reviews that is meant for use with binary sentiment classification.\n",
+    "\n",
+    "It contains data on a total of 100 thousand movie reviews, being split into a set of 25 thousand reviews for training and testing, with an additional 50 thousand unlabelled data meant for unsupervised learning.\n",
+    "\n",
+    "As the objective of this text classifier is the assignment of binary labels to each review, the report will not be taking the unlabelled reviews into consideration as the objective of this classifier is a supervised task.\n",
+    "\n",
+    "The dataset has been split into 2 main directories, one each for both labelled test set and training sets. Both sets are further split into 2 sub-folders, one housing positive review data and the other housing negative review data.\n",
+    "\n",
+    "Each moview review is stored in a .txt file with the naming format of <b>[id]_[rating].txt</b>. A negative rating is a review on IMDB with a score of ≤ 4, whereas a positive review will have a score of at least a 7, both on the scale of 10. For each set, reviews that scored a 5 or 6 were not included due to the neutrality/ambiguity of said review.\n",
+    "\n",
+    "This data was web scraped from IMDB's website, with each movie scraped via its unique ID web page and unique URL included in the dataset as well, under the test/train folders in a urls.txt file."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "32d6b3fb",
+   "metadata": {},
+   "source": [
+    "### Evaluation Methodology\n",
+    "\n",
+    "For our objective of training a text classifier to be able to properly analyse the overall sentiment of a movie through its reviews in order for users to gauge if a movie is worth their time, these are a some evaluation metrics that can be taken into consideration.\n",
+    "\n",
+    "<b>Precision</b>\n",
+    "The precision of a model can be understood as the measure of predicted positives out of the actual positives. The formula for this is,\n",
+    "\n",
+    "$$ Precision = {True Positive(TP) \\over True Positive(TP) + False Positive(FP)} $$\n",
+    "\n",
+    "<b>Recall</b>\n",
+    "The Recall of a model can be understood as the measure of correctly identified true positives. The formula for this is,\n",
+    "\n",
+    "$$ Recall = {True Positive(TP) \\over True Positive(TP) + False Negative(FN)} $$\n",
+    "\n",
+    "<b>F-1 Score</b>\n",
+    "The F-1 Score/Measure can be understood as the harmonic mean of both the precision and recall. The formula for this is,\n",
+    "\n",
+    "$$ F1 = 2 * {Precision(P) * Recall(R) \\over Precision(P) + Recall(R)} $$\n",
+    "\n",
+    "Given these 3 evaluation metrics and our objective of being able to help users gauge if a movie is worth the time invested, I have chosen to focus on having a <b>higher</b> recall in my model as this will allow it to capture as much positive/negative sentiments that have been written in a movie's reviews.\n",
+    "\n",
+    "This can be understood by the example, <i>of all the movies listed as being good, how many of them have been correctly classified by our model</i>.\n",
+    "\n",
+    "Besides focusing on just a higher recall, another key metric we will be looking at is a variation of the F-Score, known as the <b>F-2 Score</b>.\n",
+    "\n",
+    "While the F-1 Score weighs both the Precision and Recall rate equally, the F-2 Score puts a <b>larger emphasis</b> on the recall. The formula for this is,\n",
+    "\n",
+    "$$ F2 = 5 ( {Precision(P) * Recall(R) \\over ((4 * Precision(P)) + Recall(R)} ) $$\n",
+    "\n",
+    "In conclusion, I have chosen to focus on the F-2 Score to evaluate the performance of my model due to the fact that the recall rate is given a higher emphasis, which suits the primary objective of my classifier."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f3b0ae74",
+   "metadata": {},
+   "source": [
+    "## (2) : Implementation"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7c6baaea",
+   "metadata": {},
+   "source": [
+    "### Data Retrieval"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c027c39e",
+   "metadata": {},
+   "source": [
+    "For the first step, we will preprocess the dataset that i have stored locally on my machine."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 110,
+   "id": "ff4071f3",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Importing the relevant libraries\n",
+    "import sys\n",
+    "import re\n",
+    "import nltk\n",
+    "import os\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import glob\n",
+    "\n",
+    "import gensim\n",
+    "from gensim.models import Word2Vec\n",
+    "\n",
+    "from nltk.tokenize import word_tokenize\n",
+    "from nltk.corpus import stopwords\n",
+    "from nltk.stem import WordNetLemmatizer\n",
+    "\n",
+    "from sklearn.utils import shuffle\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "\n",
+    "import matplotlib.pyplot as plt"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "50ef5be3",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "[nltk_data] Downloading package wordnet to\n",
+      "[nltk_data]     C:\\Users\\Owen\\AppData\\Roaming\\nltk_data...\n",
+      "[nltk_data]   Package wordnet is already up-to-date!\n",
+      "[nltk_data] Downloading package omw-1.4 to\n",
+      "[nltk_data]     C:\\Users\\Owen\\AppData\\Roaming\\nltk_data...\n",
+      "[nltk_data]   Package omw-1.4 is already up-to-date!\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "True"
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "nltk.download('wordnet')\n",
+    "nltk.download('omw-1.4')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "211598e6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# ParseReview function - Add each review in text files to a list\n",
+    "# before we add them to a new dataframe\n",
+    "def parseReviews(file_list):\n",
+    "    review_list = []\n",
+    "\n",
+    "    for file in file_list:\n",
+    "        with open(file, 'r', encoding='utf-8') as review:\n",
+    "            content = review.read()\n",
+    "            review_list.append(content)\n",
+    "            \n",
+    "    return review_list\n",
+    "\n",
+    "# getFilmScores function - Tokenise the full path of each file and extract the score ?/10\n",
+    "# Example: \"dataset/train/neg\\0_3.txt\"\n",
+    "# Tokenise on \"\\\\\" -> 'dataset/train/neg', '0_3.txt'\n",
+    "# Tokenise on \"_\" -> '0', '3.txt'\n",
+    "# Tokenise on \".\" -> '3', '.txt'\n",
+    "# Film has a score of 3 on the scale of 10\n",
+    "def getFilmScores(file_list):\n",
+    "    score_list = []\n",
+    "\n",
+    "    for file in file_list:\n",
+    "        file_name = file.split('\\\\')\n",
+    "        file_tokens = file_name[1].split('_')\n",
+    "        file_score = file_tokens[1].split('.')\n",
+    "\n",
+    "        score_list.append(file_score[0])\n",
+    "        \n",
+    "    return score_list"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "16574119",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Use pandas .read_csv function to read the .txt files in specified directory\n",
+    "directory = \"dataset/train/neg\"\n",
+    "\n",
+    "# Use the glob module to find all pathnames that match the directory\n",
+    "file_list = glob.glob(directory + \"/*.txt\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6f63c47d",
+   "metadata": {},
+   "source": [
+    "### Data Snapshot(s)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "e74c0f79",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>review_content</th>\n",
+       "      <th>film_score</th>\n",
+       "      <th>sentiment</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>Story of a man who has unnatural feelings for ...</td>\n",
+       "      <td>3</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>Airport '77 starts as a brand new luxury 747 p...</td>\n",
+       "      <td>4</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>This film lacked something I couldn't put my f...</td>\n",
+       "      <td>4</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>Sorry everyone,,, I know this is supposed to b...</td>\n",
+       "      <td>1</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>When I was little my parents took me along to ...</td>\n",
+       "      <td>1</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>5</th>\n",
+       "      <td>\"It appears that many critics find the idea of...</td>\n",
+       "      <td>3</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>6</th>\n",
+       "      <td>The second attempt by a New York intellectual ...</td>\n",
+       "      <td>3</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>7</th>\n",
+       "      <td>I don't know who to blame, the timid writers o...</td>\n",
+       "      <td>4</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>8</th>\n",
+       "      <td>This film is mediocre at best. Angie Harmon is...</td>\n",
+       "      <td>1</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>9</th>\n",
+       "      <td>The film is bad. There is no other way to say ...</td>\n",
+       "      <td>2</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>10</th>\n",
+       "      <td>This film is one giant pant load. Paul Schrade...</td>\n",
+       "      <td>1</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>11</th>\n",
+       "      <td>The plot for Descent, if it actually can be ca...</td>\n",
+       "      <td>4</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12</th>\n",
+       "      <td>Plot is not worth discussion even if it hints ...</td>\n",
+       "      <td>3</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>13</th>\n",
+       "      <td>This film is about a male escort getting invol...</td>\n",
+       "      <td>3</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>14</th>\n",
+       "      <td>This movie must be in line for the most boring...</td>\n",
+       "      <td>1</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>15</th>\n",
+       "      <td>A worn-out plot of a man who takes the rap for...</td>\n",
+       "      <td>1</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>16</th>\n",
+       "      <td>I saw this movie at a drive-in in 1959. Until ...</td>\n",
+       "      <td>2</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>17</th>\n",
+       "      <td>Ghost of Dragstrip Hollow is a typical 1950's ...</td>\n",
+       "      <td>2</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>18</th>\n",
+       "      <td>\"Ghost of Dragstrip Hollow\" was one of the man...</td>\n",
+       "      <td>4</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>19</th>\n",
+       "      <td>\"Ghost of Dragstrip Hollow\" appears to take pl...</td>\n",
+       "      <td>4</td>\n",
+       "      <td>neg</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "                                       review_content film_score sentiment\n",
+       "0   Story of a man who has unnatural feelings for ...          3       neg\n",
+       "1   Airport '77 starts as a brand new luxury 747 p...          4       neg\n",
+       "2   This film lacked something I couldn't put my f...          4       neg\n",
+       "3   Sorry everyone,,, I know this is supposed to b...          1       neg\n",
+       "4   When I was little my parents took me along to ...          1       neg\n",
+       "5   \"It appears that many critics find the idea of...          3       neg\n",
+       "6   The second attempt by a New York intellectual ...          3       neg\n",
+       "7   I don't know who to blame, the timid writers o...          4       neg\n",
+       "8   This film is mediocre at best. Angie Harmon is...          1       neg\n",
+       "9   The film is bad. There is no other way to say ...          2       neg\n",
+       "10  This film is one giant pant load. Paul Schrade...          1       neg\n",
+       "11  The plot for Descent, if it actually can be ca...          4       neg\n",
+       "12  Plot is not worth discussion even if it hints ...          3       neg\n",
+       "13  This film is about a male escort getting invol...          3       neg\n",
+       "14  This movie must be in line for the most boring...          1       neg\n",
+       "15  A worn-out plot of a man who takes the rap for...          1       neg\n",
+       "16  I saw this movie at a drive-in in 1959. Until ...          2       neg\n",
+       "17  Ghost of Dragstrip Hollow is a typical 1950's ...          2       neg\n",
+       "18  \"Ghost of Dragstrip Hollow\" was one of the man...          4       neg\n",
+       "19  \"Ghost of Dragstrip Hollow\" appears to take pl...          4       neg"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Call parseReviews function and add the contents of the list to a dataframe\n",
+    "review_list = parseReviews(file_list)\n",
+    "\n",
+    "# Call getFilmScores function to add film score (?/10) to a list and to the dataframe\n",
+    "score_list = getFilmScores(file_list)\n",
+    "\n",
+    "# Assign a binary label to each row (neg/pos)\n",
+    "neg_reviews = pd.DataFrame({'review_content': review_list, 'film_score': score_list, 'sentiment': \"neg\"})\n",
+    "\n",
+    "# Sanity check of top 20 rows\n",
+    "neg_reviews[:20]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "445ba4d8",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Repeat for the positive reviews in our training set\n",
+    "directory = \"dataset/train/pos\"\n",
+    "\n",
+    "file_list = glob.glob(directory + '/*.txt')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 37,
+   "id": "b7cc92eb",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>review_content</th>\n",
+       "      <th>film_score</th>\n",
+       "      <th>sentiment</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>Bromwell High is a cartoon comedy. It ran at t...</td>\n",
+       "      <td>9</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>Homelessness (or Houselessness as George Carli...</td>\n",
+       "      <td>8</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>Brilliant over-acting by Lesley Ann Warren. Be...</td>\n",
+       "      <td>10</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>This is easily the most underrated film inn th...</td>\n",
+       "      <td>7</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>This is not the typical Mel Brooks film. It wa...</td>\n",
+       "      <td>8</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12495</th>\n",
+       "      <td>Seeing as the vote average was pretty low, and...</td>\n",
+       "      <td>9</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12496</th>\n",
+       "      <td>The plot had some wretched, unbelievable twist...</td>\n",
+       "      <td>8</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12497</th>\n",
+       "      <td>I am amazed at how this movie(and most others ...</td>\n",
+       "      <td>10</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12498</th>\n",
+       "      <td>A Christmas Together actually came before my t...</td>\n",
+       "      <td>8</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12499</th>\n",
+       "      <td>Working-class romantic drama from director Mar...</td>\n",
+       "      <td>7</td>\n",
+       "      <td>pos</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>12500 rows × 3 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "                                          review_content film_score sentiment\n",
+       "0      Bromwell High is a cartoon comedy. It ran at t...          9       pos\n",
+       "1      Homelessness (or Houselessness as George Carli...          8       pos\n",
+       "2      Brilliant over-acting by Lesley Ann Warren. Be...         10       pos\n",
+       "3      This is easily the most underrated film inn th...          7       pos\n",
+       "4      This is not the typical Mel Brooks film. It wa...          8       pos\n",
+       "...                                                  ...        ...       ...\n",
+       "12495  Seeing as the vote average was pretty low, and...          9       pos\n",
+       "12496  The plot had some wretched, unbelievable twist...          8       pos\n",
+       "12497  I am amazed at how this movie(and most others ...         10       pos\n",
+       "12498  A Christmas Together actually came before my t...          8       pos\n",
+       "12499  Working-class romantic drama from director Mar...          7       pos\n",
+       "\n",
+       "[12500 rows x 3 columns]"
+      ]
+     },
+     "execution_count": 37,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "review_list = parseReviews(file_list)\n",
+    "score_list = getFilmScores(file_list)\n",
+    "pos_reviews = pd.DataFrame({'review_content': review_list, 'film_score': score_list, 'sentiment': \"pos\"})\n",
+    "\n",
+    "pos_reviews[:20]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1e799737",
+   "metadata": {},
+   "source": [
+    "### Dataframe size comparison"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "305a125d",
+   "metadata": {},
+   "source": [
+    "Although we know from the README that came with the dataset that the data should be even, we can create a simple bar chart to compare the number of positive and negative reviews to confirm that it is in fact true.\n",
+    "\n",
+    "I will be using the built-in functions from pandas to plot a simple bar chart for comparison."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 38,
+   "id": "5f4e49c9",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<module 'matplotlib.pyplot' from 'C:\\\\Users\\\\Owen\\\\anaconda3\\\\lib\\\\site-packages\\\\matplotlib\\\\pyplot.py'>"
+      ]
+     },
+     "execution_count": 38,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 640x480 with 1 Axes>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "barplot = pd.DataFrame(\n",
+    "    {\"dataset_size\": [len(pos_reviews.index), len(neg_reviews.index)]},\n",
+    "        index=[\"Positive Reviews\", \"Negative Reviews\"])\n",
+    "\n",
+    "barplot.plot(kind=\"bar\")\n",
+    "plt.xticks(rotation=0, horizontalalignment=\"center\")\n",
+    "plt.title(\"Dataset size comparison between Postive and Negative Reviews\")\n",
+    "plt.ylabel(\"Size of DataFrame\")  \n",
+    "\n",
+    "# display bar chart\n",
+    "plt"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4a986bd5",
+   "metadata": {},
+   "source": [
+    "As can be seen above, both pos/neg review dataframes have the same size of 12500 and thus have an equal representation in the dataset."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b73775b4",
+   "metadata": {},
+   "source": [
+    "### Preprocessing"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "43f21425",
+   "metadata": {},
+   "source": [
+    "Now that we have taken a look at the dataframes, I will be converting the words within the <b>postive</b> and <b>negative</b> DataFrames into a <b>Continuous Bag of Words(CBoW)</b> format.\n",
+    "\n",
+    "The reason for this over a normal Bag Of Words(BoW) for example, is due to contextual information being important in each review, a BoW does not consider the sequence of words and each of them are treated independantly. However, a CBoW does the opposite, taking into account word order and context, which is important for our binary classification."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "73f53acf",
+   "metadata": {},
+   "source": [
+    "I have chosen to use the Word2Vec algorithm from the gensim module to represent my CBoW.\n",
+    "\n",
+    "But, before I can do so, there is preprocessing to the text that must be done.\n",
+    "\n",
+    "The steps I will take to prepare my text are,\n",
+    "- Tokenization,\n",
+    "- Stopword Removal,\n",
+    "- Removal of special characters and numbers,\n",
+    "- Text Lowercasing,\n",
+    "- Lemmatization,\n",
+    "- Feature Scaling.\n",
+    "\n",
+    "Both lemmatization and stemming were considered in preprocessing, with lemmatization ultimately being chosen. Since the context of words in the review are a major factor in keeping the the core meaning and sentiment, i have opted to use lemmatization instead."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 134,
+   "id": "50d736a6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Preprocess review content with steps mentioned above (tokenization, stopword removal etc.)\n",
+    "def preprocess_text_data(text_content):\n",
+    "        # Initialize lemmatizer\n",
+    "        lemma = WordNetLemmatizer()\n",
+    "        # Use regex to remove special characters and integers\n",
+    "        text_content = re.sub('[^a-zA-Z]', ' ', text_content)\n",
+    "\n",
+    "        # Transform characters to lowercase and tokenize them\n",
+    "        text_content = text_content.lower()\n",
+    "        w_tokens = word_tokenize(text_content)\n",
+    "\n",
+    "        # Lemmative tokenized words to extract root meaning of word\n",
+    "#         lw_tokens = [lemma.lemmatize(w_token) for w_token in w_tokens]\n",
+    "        \n",
+    "        # run remove stop words function\n",
+    "        preprocessed_text = stop_words_removal(w_tokens)\n",
+    "\n",
+    "        return preprocessed_text\n",
+    "\n",
+    "    \n",
+    "# Remove english stop words from the reviews to increase search performance\n",
+    "def stop_words_removal(text_content):\n",
+    "    # Remove stop words in text content\n",
+    "    stop_words = set(stopwords.words('english'))\n",
+    "    fil_tokens = tokens_without_sw = [word for word in text_content if not word in stop_words]\n",
+    "    \n",
+    "    # Re-append the cleaned/filtered content into a string\n",
+    "    fil_string = ' '.join(fil_tokens)\n",
+    "    return fil_string"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8d601367",
+   "metadata": {},
+   "source": [
+    "### Data Splitting"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "71ab03e3",
+   "metadata": {},
+   "source": [
+    "Before any training is done, the data will also be shuffled so as to avoid any sequential bias and also promote fairness across data by preventing the model from learning to rely on specific order of examples.\n",
+    "\n",
+    "Of the 25 thousand total reviews in both the training and testing sets, I will split them in the ratio of <b>[80 : 20]</b>. 80% for data training from the training set and 20% for data testing from the testing set, all chosen at random by shuffling the entries as mentioned previously.\n",
+    "\n",
+    "The identified features of this classifier are the 'review_content' and the identified labels will be the 'sentiment'."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 130,
+   "id": "15da4fa7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Create new dataframe for text preprocessing\n",
+    "processed_df = pd.DataFrame()\n",
+    "\n",
+    "\n",
+    "# Append entries from each to the DataFrame for splitting/shuffling\n",
+    "processed_df = pd.concat([pos_reviews, neg_reviews])\n",
+    "\n",
+    "# Shuffle entries and update indices\n",
+    "processed_df = shuffle(processed_df)\n",
+    "processed_df.reset_index(inplace=True, drop=True)\n",
+    "\n",
+    "# Split features and label\n",
+    "x_data_features = processed_df['review_content']\n",
+    "y_data_labels = processed_df['sentiment']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 131,
+   "id": "0f813001",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<class 'pandas.core.frame.DataFrame'>\n",
+      "RangeIndex: 25000 entries, 0 to 24999\n",
+      "Data columns (total 3 columns):\n",
+      " #   Column          Non-Null Count  Dtype \n",
+      "---  ------          --------------  ----- \n",
+      " 0   review_content  25000 non-null  object\n",
+      " 1   film_score      25000 non-null  object\n",
+      " 2   sentiment       25000 non-null  object\n",
+      "dtypes: object(3)\n",
+      "memory usage: 586.1+ KB\n"
+     ]
+    }
+   ],
+   "source": [
+    "processed_df.info()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 155,
+   "id": "c5d0c8f7",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Split Dataset size(s)\n",
+      "X_train:  (20000,)\n",
+      "X_test:  (5000,)\n",
+      "y_train:  (20000,)\n",
+      "y_test:  (5000,)\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Split data using 80 : 20 ratio (training : testing)\n",
+    "X_train, X_test, y_train, y_test = train_test_split(data_features, data_labels, test_size=0.20, random_state=1)\n",
+    "\n",
+    "# ratio should be 20000 training data and 5000 testing data.\n",
+    "print('Split Dataset size(s)')\n",
+    "print('X_train: ', X_train.shape)\n",
+    "print('X_test: ', X_test.shape)\n",
+    "print('y_train: ', y_train.shape)\n",
+    "print('y_test: ', y_test.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 135,
+   "id": "a0a703d2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_train_df = pd.DataFrame()\n",
+    "\n",
+    "X_train_df['processed_review'] = X_train.apply(preprocess_text_data)\n",
+    "X_train_df = X_train_df['processed_review'].tolist()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 159,
+   "id": "8b3f250a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Tokenize the preprocessed reviews\n",
+    "tokenized_reviews = [word_tokenize(review) for review in X_train_df]\n",
+    "\n",
+    "# Train the Word2Vec model (CBOW)\n",
+    "cbow_model = Word2Vec(sentences = tokenized_reviews, min_count = 1, vector_size = 100, workers = 6, window = 5, cbow_mean = 1) "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 160,
+   "id": "01fe7fcf",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "4"
+      ]
+     },
+     "execution_count": 160,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# w/ lemma (Remember to remove this, was just for display)\n",
+    "cbow_model.wv.get_vecattr(\"wim\", \"count\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "70086a71",
+   "metadata": {},
+   "source": [
+    "### Baseline Performance/Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2913a6b6",
+   "metadata": {},
+   "source": [
+    "For the baseline model, a Logistic Regression model was used with the CBoW model we created during our preprocessing.\n",
+    "\n",
+    "Logistic Regression was chosen as the baseline as,\n",
+    "- it is one of the easier models to implement and train,\n",
+    "- it is one of the most efficient models when outcomes have linearly seperable distinctions.\n",
+    "\n",
+    "The steps to accomplish this are,\n",
+    "- generate word vectors from the CBoW model we created,\n",
+    "- init and train Logistic Regression model using sckit-learn,\n",
+    "- make predictions of the baseline,\n",
+    "- evaluate metrics of the model"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 227,
+   "id": "846b4a5f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# import sklearn modules for use of logistic regression and its features\n",
+    "from sklearn.feature_extraction.text import CountVectorizer\n",
+    "from sklearn.linear_model import LogisticRegression\n",
+    "# from sklearn.metrics import accuracy_score\n",
+    "from sklearn.metrics import precision_score\n",
+    "from sklearn.metrics import recall_score"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a3f3f9a9",
+   "metadata": {},
+   "source": [
+    "### Word Vectors"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 176,
+   "id": "d28cb034",
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "X_train_word_vector = np.array([np.mean([cbow_model.wv[word] for word in review], axis=0) for review in tokenized_reviews])\n",
+    "\n",
+    "# X_test_word_vector = np.array([np.mean([cbow_model.wv[word] for word in review.split() if word in cbow_model.wv], axis=0) for review in X_test])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 180,
+   "id": "1fa44faa",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_test_word_vector = np.zeros((len(X_test), 100))  # Initialize X_test_word_vector array\n",
+    "\n",
+    "for i, review in enumerate(X_test):\n",
+    "    word_vectors = [cbow_model.wv[word] for word in review.split() if word in cbow_model.wv]\n",
+    "    if word_vectors:\n",
+    "        mean_vector = np.mean(word_vectors, axis=0)\n",
+    "        X_test_word_vector[i] = mean_vector"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 181,
+   "id": "ac25fa51",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "LogisticRegression(max_iter=200)"
+      ]
+     },
+     "execution_count": 181,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "classifier = LogisticRegression(max_iter=200)\n",
+    "classifier.fit(X_train_word_vector, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 222,
+   "id": "602878e5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "y_pred = classifier.predict(X_test_word_vector)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 228,
+   "id": "bceb4d48",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Precision:  0.8126463700234192\n",
+      "Recall:  0.8248811410459588\n"
+     ]
+    }
+   ],
+   "source": [
+    "# accuracy = accuracy_score(y_test, y_pred)\n",
+    "# print(\"Accuracy:\", accuracy)\n",
+    "\n",
+    "precision = precision_score(y_test, y_pred, pos_label='pos')\n",
+    "print('Precision: ', precision)\n",
+    "\n",
+    "recall = recall_score(y_test, y_pred, pos_label='pos')\n",
+    "print('Recall: ', recall)\n",
+    "\n",
+    "# F-2Score does not exist in sklean as an existing function,\n",
+    "# using the formula we "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "60dc1e88",
+   "metadata": {},
+   "source": [
+    "As the returning the F2 Score is not a function in the sklearn module, we will be calculating it using the aforementioned formula,\n",
+    "\n",
+    "$$ F2 = 5 ( {Precision(P) * Recall(R) \\over ((4 * Precision(P)) + Recall(R)} ) $$"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 229,
+   "id": "f23d758a",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "F2-Score:  0.8224048032864593\n"
+     ]
+    }
+   ],
+   "source": [
+    "def find_f2_score(precision, recall):\n",
+    "    f_two = 5 * (precision * recall / ((4 * precision) + recall))\n",
+    "    \n",
+    "    return f_two\n",
+    "\n",
+    "f2_score = find_f2_score(precision, recall)\n",
+    "print('F2-Score: ', f2_score)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6b51dcb6",
+   "metadata": {},
+   "source": [
+    "### Classification Approach"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "26e695dc",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4a359ee9",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.13"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
