@@ -8,4 +8,4 @@ Remember to download dataset and store in a 'dataset' folder from https://ai.sta
   for this classification task.
 
   
-  Grade achieved: 78%
+  Grade achieved: 78% (A)
